@@ -1,0 +1,104 @@
+# Escenario 1 - CENTRALIZADO
+# Broker + 4 productores + 4 consumidores en un único nodo.
+name: taller-rabbitmq
+
+x-rabbit-env: &rabbit-env
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: admin
+  RABBITMQ_PASS: admin123
+  EXCHANGE: eventos
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Panel de administración
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [eventos-net]
+
+  # ---------- PRODUCTORES ----------
+  producer-orders:        # Python
+    build: ./producer-orders
+    container_name: producer-orders
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  producer-payments:      # Node.js
+    build: ./producer-payments
+    container_name: producer-payments
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  producer-inventory:     # Go
+    build: ./producer-inventory
+    container_name: producer-inventory
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  producer-shipping:      # Node.js
+    build: ./producer-shipping
+    container_name: producer-shipping
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  # ---------- CONSUMIDORES ----------
+  consumer-billing:       # Python
+    build: ./consumer-billing
+    container_name: consumer-billing
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  consumer-stock:         # Go
+    build: ./consumer-stock
+    container_name: consumer-stock
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  consumer-notifications: # Node.js
+    build: ./consumer-notifications
+    container_name: consumer-notifications
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+  consumer-audit:         # Python
+    build: ./consumer-audit
+    container_name: consumer-audit
+    environment: *rabbit-env
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [eventos-net]
+
+networks:
+  eventos-net:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:

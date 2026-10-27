@@ -1,0 +1,8 @@
+{
+  "name": "producer-payments",
+  "version": "1.0.0",
+  "main": "producer.js",
+  "dependencies": {
+    "amqplib": "^0.10.4"
+  }
+}
